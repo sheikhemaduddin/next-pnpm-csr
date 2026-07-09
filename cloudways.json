@@ -1,0 +1,9 @@
+{
+  "renderingMode": "csr",
+  "framework": "nextjs",
+  "packageManager": "pnpm",
+  "buildCommand": "pnpm install && pnpm build",
+  "outputDirectory": ".",
+  "entryFile": "server.js",
+  "startCommand": "pnpm start"
+}

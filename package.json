@@ -1,8 +1,16 @@
 {
-  "name": "next-custom-pnpm",
+  "name": "next-pnpm-csr",
   "version": "1.0.0",
   "private": true,
   "description": "Next.js CSR SPA with custom server (server.js) — Cloudways deploy",
+  "main": "server.js",
+  "cloudways": {
+    "renderingMode": "csr",
+    "framework": "nextjs",
+    "entryFile": "server.js",
+    "outputDirectory": ".",
+    "startCommand": "pnpm start"
+  },
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
