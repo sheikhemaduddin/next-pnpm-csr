@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.next/
+.output/
+.vinxi/
+out/
+.env
+.env*.local
+*.log
+.DS_Store
+.vercel
+
+# other PMs’ lockfiles
+package-lock.json
+yarn.lock
+
+# Yarn Berry
+.yarn/*
+!.yarn/patches
+.pnp.*

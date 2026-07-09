@@ -1,0 +1,116 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - button "PitchPulse Home" [ref=e6] [cursor=pointer]:
+          - generic [ref=e7]: ⚽
+          - text: PitchPulse
+        - navigation "Main navigation" [ref=e8]:
+          - button "Home" [ref=e9] [cursor=pointer]
+          - button "Live Scores" [ref=e10] [cursor=pointer]
+          - button "News" [ref=e11] [cursor=pointer]
+          - button "Standings" [ref=e12] [cursor=pointer]
+        - generic [ref=e13]: Live
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Live · Premier League
+          - heading "Title race heats up as Arsenal edge past City" [level=1] [ref=e23]
+          - paragraph [ref=e24]: Matchday 34 · Emirates Stadium · 62,000 attendance
+          - generic [ref=e25]:
+            - generic [ref=e26]:
+              - generic "Arsenal" [ref=e27]: AR
+              - generic [ref=e28]: Arsenal
+            - generic [ref=e29]:
+              - generic [ref=e30]: 2 – 1
+              - generic [ref=e31]: 67'
+            - generic [ref=e32]:
+              - generic "Man City" [ref=e33]: MC
+              - generic [ref=e34]: Man City
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - heading "Latest News" [level=2] [ref=e37]
+            - generic [ref=e38]:
+              - button "⚽ Premier League Saka brace fires Arsenal past City in title race thriller Bukayo Saka scored twice as Arsenal moved two points clear at the top with a dramatic 2-1 win over Manchester City at the Emirates. James Richardson · 12 min ago" [ref=e39] [cursor=pointer]:
+                - generic [ref=e40]: ⚽
+                - generic [ref=e42]:
+                  - generic [ref=e43]: Premier League
+                  - heading "Saka brace fires Arsenal past City in title race thriller" [level=3] [ref=e44]
+                  - paragraph [ref=e45]: Bukayo Saka scored twice as Arsenal moved two points clear at the top with a dramatic 2-1 win over Manchester City at the Emirates.
+                  - paragraph [ref=e46]: James Richardson · 12 min ago
+              - button "⚽ Transfer News Real Madrid monitoring Liverpool midfielder ahead of summer window Sources close to the club suggest Los Blancos are preparing a record bid as contract talks stall in Merseyside. Sarah Martinez · 34 min ago" [ref=e47] [cursor=pointer]:
+                - generic [ref=e48]: ⚽
+                - generic [ref=e50]:
+                  - generic [ref=e51]: Transfer News
+                  - heading "Real Madrid monitoring Liverpool midfielder ahead of summer window" [level=3] [ref=e52]
+                  - paragraph [ref=e53]: Sources close to the club suggest Los Blancos are preparing a record bid as contract talks stall in Merseyside.
+                  - paragraph [ref=e54]: Sarah Martinez · 34 min ago
+              - button "🏀 NBA Celtics edge Lakers in overtime classic at TD Garden Jayson Tatum dropped 38 points as Boston survived a late LeBron surge to win 102-98 in a heavyweight Western Conference clash. Marcus Webb · 1 hr ago" [ref=e55] [cursor=pointer]:
+                - generic [ref=e56]: 🏀
+                - generic [ref=e58]:
+                  - generic [ref=e59]: NBA
+                  - heading "Celtics edge Lakers in overtime classic at TD Garden" [level=3] [ref=e60]
+                  - paragraph [ref=e61]: Jayson Tatum dropped 38 points as Boston survived a late LeBron surge to win 102-98 in a heavyweight Western Conference clash.
+                  - paragraph [ref=e62]: Marcus Webb · 1 hr ago
+            - button "View all news →" [ref=e63] [cursor=pointer]
+          - complementary [ref=e64]:
+            - generic [ref=e65]:
+              - heading "Live Now" [level=3] [ref=e66]
+              - generic [ref=e67]:
+                - generic [ref=e68]:
+                  - generic [ref=e69]:
+                    - generic "Arsenal" [ref=e70]: AR
+                    - generic [ref=e71]: Arsenal
+                  - generic [ref=e72]:
+                    - generic [ref=e73]: 2 – 1
+                    - generic [ref=e74]: 67'
+                  - generic [ref=e75]:
+                    - generic "Man City" [ref=e76]: MC
+                    - generic [ref=e77]: Man City
+                - generic [ref=e78]:
+                  - generic [ref=e79]:
+                    - generic "Liverpool" [ref=e80]: LI
+                    - generic [ref=e81]: Liverpool
+                  - generic [ref=e82]:
+                    - generic [ref=e83]: 0 – 0
+                    - generic [ref=e84]: 23'
+                  - generic [ref=e85]:
+                    - generic "Chelsea" [ref=e86]: CH
+                    - generic [ref=e87]: Chelsea
+                - generic [ref=e88]:
+                  - generic [ref=e89]:
+                    - generic "Lakers" [ref=e90]: LA
+                    - generic [ref=e91]: Lakers
+                  - generic [ref=e92]:
+                    - generic [ref=e93]: 98 – 102
+                    - generic [ref=e94]: Q4 4:12
+                  - generic [ref=e95]:
+                    - generic "Celtics" [ref=e96]: BO
+                    - generic [ref=e97]: Celtics
+              - button "All scores →" [ref=e98] [cursor=pointer]
+            - generic [ref=e99]:
+              - heading "Trending" [level=3] [ref=e100]
+              - generic [ref=e101] [cursor=pointer]:
+                - generic [ref=e102]: "1"
+                - generic [ref=e103]: Saka brace sinks City in title decider
+              - generic [ref=e104] [cursor=pointer]:
+                - generic [ref=e105]: "2"
+                - generic [ref=e106]: Haaland injury scare after Emirates clash
+              - generic [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]: "3"
+                - generic [ref=e109]: Slot confirms Salah will start vs Chelsea
+              - generic [ref=e110] [cursor=pointer]:
+                - generic [ref=e111]: "4"
+                - generic [ref=e112]: "NBA: Tatum 38 pts in Celtics OT win"
+              - generic [ref=e113] [cursor=pointer]:
+                - generic [ref=e114]: "5"
+                - generic [ref=e115]: Villa eye Champions League qualification
+    - contentinfo [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]: © 2026 PitchPulse Sports · Client-rendered SPA demo
+        - generic [ref=e119]:
+          - button "Home" [ref=e120] [cursor=pointer]
+          - button "Scores" [ref=e121] [cursor=pointer]
+          - button "News" [ref=e122] [cursor=pointer]
+          - button "Standings" [ref=e123] [cursor=pointer]
+  - alert [ref=e124]

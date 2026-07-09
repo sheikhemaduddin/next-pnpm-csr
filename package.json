@@ -1,0 +1,20 @@
+{
+  "name": "next-custom-pnpm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Next.js custom server mode (server.js entry file) — Cloudways launch test",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "next build",
+    "start": "NODE_ENV=production node server.js"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "packageManager": "pnpm@9.7.0"
+}
