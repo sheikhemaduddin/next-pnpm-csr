@@ -2,7 +2,7 @@
   "name": "next-custom-pnpm",
   "version": "1.0.0",
   "private": true,
-  "description": "Next.js custom server mode (server.js entry file) — Cloudways launch test",
+  "description": "Next.js CSR SPA with custom server (server.js) — Cloudways deploy",
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
