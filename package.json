@@ -2,10 +2,10 @@
   "name": "next-pnpm-csr",
   "version": "1.0.0",
   "private": true,
-  "description": "Next.js CSR SPA with custom server (server.js) — Cloudways deploy",
+  "description": "Next.js app with custom Node server (server.js) — Cloudways persistent-server deploy",
   "main": "server.js",
   "cloudways": {
-    "renderingMode": "csr",
+    "renderingMode": "ssr",
     "framework": "nextjs",
     "entryFile": "server.js",
     "outputDirectory": ".",
@@ -17,6 +17,8 @@
     "start": "NODE_ENV=production node server.js"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.45.4",
     "next": "14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
