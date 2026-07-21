@@ -5,6 +5,7 @@ const VIEWS = [
   { id: 'scores', label: 'Live Scores' },
   { id: 'news', label: 'News' },
   { id: 'standings', label: 'Standings' },
+  { id: 'leaders', label: 'Leaders' },
 ];
 
 export default function Header({ currentView, onNavigate }) {

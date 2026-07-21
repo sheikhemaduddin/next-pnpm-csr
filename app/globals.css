@@ -827,3 +827,27 @@ img {
   border-radius: var(--radius-sm);
   background: var(--bg-card);
 }
+
+.leaders-status {
+  color: var(--text-muted);
+  margin: 1.5rem 0;
+}
+
+.leaders-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.leaders-empty code {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.leader-sport {
+  font-size: 1.1rem;
+  line-height: 1;
+}

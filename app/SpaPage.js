@@ -8,9 +8,10 @@ import HomeView from './components/HomeView';
 import ScoresView from './components/ScoresView';
 import NewsView from './components/NewsView';
 import StandingsView from './components/StandingsView';
+import LeadersView from './components/LeadersView';
 import ArticleView from './components/ArticleView';
 
-const VALID_VIEWS = ['home', 'scores', 'news', 'standings'];
+const VALID_VIEWS = ['home', 'scores', 'news', 'standings', 'leaders'];
 
 function parseHash() {
   const hash = window.location.hash.slice(1);
@@ -77,6 +78,7 @@ export default function SpaPage() {
               {currentView === 'scores' && <ScoresView />}
               {currentView === 'news' && <NewsView onOpenArticle={openArticle} />}
               {currentView === 'standings' && <StandingsView />}
+              {currentView === 'leaders' && <LeadersView />}
               {currentView === 'article' && (
                 <ArticleView articleId={articleId} onBack={goBack} />
               )}
