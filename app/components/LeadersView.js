@@ -2,19 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '../../lib/supabase/client';
+import { hasSupabaseConfig } from '../../lib/supabase/env';
 
 const TABS = [
   { id: 'scorer', label: 'Top Scorers', unitHint: 'Goals' },
   { id: 'bowler', label: 'Top Bowlers', unitHint: 'Wickets' },
 ];
-
-function hasSupabaseConfig() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project')
-  );
-}
 
 export default function LeadersView() {
   const [category, setCategory] = useState('scorer');
@@ -33,7 +26,7 @@ export default function LeadersView() {
       if (!hasSupabaseConfig()) {
         if (!cancelled) {
           setError(
-            'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then rebuild.'
+            'Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY, then rebuild.'
           );
           setLoading(false);
         }
