@@ -49,6 +49,17 @@ curl -sS "https://YOUR_APP/api/live/poll"
 
 If `/socket.io` returns HTML or 404, the Live Feed falls back to **HTTP poll** (`/api/live/poll`) automatically.
 
+## App login (not Supabase)
+
+PitchPulse login is **separate from Supabase**. The home SPA shows a login gate until the user signs in; **Log out** clears the session and returns to that gate.
+
+- `POST /api/auth/login` → `{ token, user }`
+- Client stores the JWT in `localStorage` and sends it as **`X-Access-Token`** (never `Authorization`)
+- Demo user: `demo@pitchpulse.app` / `pitchpulse`
+- Optional: set `JWT_SECRET` (or `APP_JWT_SECRET`) on the server
+
+Supabase remains optional and is only used for Leaders data (`SUPABASE_URL` / `SUPABASE_ANON_KEY`).
+
 ## HTTP Basic Auth + app JWT (FleetIQ pattern)
 
 Cloudways Application Password Protection uses the `Authorization` header for Basic Auth.
@@ -58,11 +69,10 @@ If the app also sends `Authorization: Bearer <jwt>` on same-origin requests, the
 
 | Call | Header |
 |------|--------|
-| Browser → Cloudways app (`/api/...`) | `X-Access-Token: <supabase access_token>` via `lib/auth/apiFetch.js` |
+| Browser → Cloudways app (`/api/...`) | `X-Access-Token: <app jwt>` via `lib/auth/session.js` |
 | Browser → Supabase (`*.supabase.co`) | `Authorization: Bearer …` (required by Supabase; not same-origin) |
 | Cloudways edge Basic Auth | `Authorization: Basic …` (browser-managed) |
 
-Server routes resolve the user with `getRequestAuth()` (cookies first, then `X-Access-Token`).
 Unauthenticated APIs return **403** (not 401) so the browser does not re-challenge Basic Auth.
 
 ## Notes

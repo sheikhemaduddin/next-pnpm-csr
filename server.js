@@ -4,6 +4,7 @@ const { createServer } = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
 const liveBus = require('./lib/liveBus');
+const { authenticate, verifyToken } = require('./lib/auth/appAuth');
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = process.env.PORT || 3000;
@@ -27,6 +28,69 @@ function sendJson(res, statusCode, body) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(body));
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      try {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function getAccessToken(req) {
+  const custom = req.headers['x-access-token'];
+  if (custom) return String(Array.isArray(custom) ? custom[0] : custom).trim();
+  const auth = req.headers.authorization || '';
+  if (String(auth).toLowerCase().startsWith('bearer ')) {
+    return String(auth).slice(7).trim();
+  }
+  return null;
+}
+
+async function handleAuthLogin(req, res) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const email = String(body?.email || '').trim();
+    const password = String(body?.password || '');
+    if (!email || !password) {
+      sendJson(res, 400, { error: 'Email and password required' });
+      return;
+    }
+    const result = authenticate(email, password);
+    if (!result) {
+      sendJson(res, 403, { error: 'Invalid credentials' });
+      return;
+    }
+    sendJson(res, 200, result);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON' });
+  }
+}
+
+function handleAuthMe(req, res) {
+  if (req.method !== 'GET') {
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+  const user = verifyToken(getAccessToken(req));
+  if (!user) {
+    sendJson(res, 403, { error: 'Not authenticated' });
+    return;
+  }
+  sendJson(res, 200, { user });
 }
 
 function sendHealthz(res) {
@@ -105,6 +169,16 @@ app.prepare().then(() => {
     // Served here (not only via Next) so the same liveBus instance is used.
     if (parsedUrl.pathname === '/api/live/poll') {
       handleLivePoll(req, res, parsedUrl);
+      return;
+    }
+
+    // App login (independent of Supabase / Next bundling).
+    if (parsedUrl.pathname === '/api/auth/login') {
+      handleAuthLogin(req, res);
+      return;
+    }
+    if (parsedUrl.pathname === '/api/auth/me') {
+      handleAuthMe(req, res);
       return;
     }
 

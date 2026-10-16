@@ -11,6 +11,8 @@ import StandingsView from './components/StandingsView';
 import LeadersView from './components/LeadersView';
 import LiveView from './components/LiveView';
 import ArticleView from './components/ArticleView';
+import LoginGate from './components/LoginGate';
+import { fetchCurrentUser, getStoredUser, logout } from '../lib/auth/session';
 
 const VALID_VIEWS = ['home', 'scores', 'news', 'standings', 'leaders', 'live'];
 
@@ -25,6 +27,8 @@ function parseHash() {
 
 export default function SpaPage() {
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [currentView, setCurrentView] = useState('home');
   const [articleId, setArticleId] = useState(null);
 
@@ -38,6 +42,14 @@ export default function SpaPage() {
     setMounted(true);
     syncFromHash();
     window.addEventListener('hashchange', syncFromHash);
+
+    const cached = getStoredUser();
+    if (cached) setUser(cached);
+
+    fetchCurrentUser()
+      .then((u) => setUser(u))
+      .finally(() => setAuthReady(true));
+
     return () => window.removeEventListener('hashchange', syncFromHash);
   }, [syncFromHash]);
 
@@ -53,23 +65,36 @@ export default function SpaPage() {
     window.location.hash = 'news';
   }, []);
 
+  const handleLogout = useCallback(() => {
+    logout();
+    setUser(null);
+    window.location.hash = '';
+  }, []);
+
   return (
     <>
       <ClientHead
         title="PitchPulse — Live Sports Scores & News"
         description="Live football and basketball scores, standings, and breaking sports news."
       />
-      {!mounted ? (
+      {!mounted || !authReady ? (
         <div className="app">
-          <div className="container" style={{ padding: '4rem 1.25rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div
+            className="container"
+            style={{ padding: '4rem 1.25rem', textAlign: 'center', color: 'var(--text-muted)' }}
+          >
             Loading PitchPulse…
           </div>
         </div>
+      ) : !user ? (
+        <LoginGate onLoggedIn={setUser} />
       ) : (
         <div className="app">
           <Header
             currentView={currentView === 'article' ? 'news' : currentView}
             onNavigate={navigate}
+            user={user}
+            onLogout={handleLogout}
           />
           <main className="main">
             <div className="container">

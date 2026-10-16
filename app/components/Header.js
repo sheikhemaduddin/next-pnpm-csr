@@ -9,7 +9,7 @@ const VIEWS = [
   { id: 'live', label: 'Live Feed' },
 ];
 
-export default function Header({ currentView, onNavigate }) {
+export default function Header({ currentView, onNavigate, user, onLogout }) {
   return (
     <header className="header">
       <div className="container">
@@ -34,9 +34,14 @@ export default function Header({ currentView, onNavigate }) {
               <span className="live-dot" />
               Live
             </span>
-            <a className="nav-btn login-link" href="/login">
-              Log in
-            </a>
+            {user && (
+              <span className="live-meta" title={user.email}>
+                {user.name || user.email}
+              </span>
+            )}
+            <button type="button" className="nav-btn login-link" onClick={onLogout}>
+              Log out
+            </button>
           </div>
         </div>
         <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -49,9 +54,9 @@ export default function Header({ currentView, onNavigate }) {
               {v.label}
             </button>
           ))}
-          <a className="nav-btn login-link" href="/login">
-            Log in
-          </a>
+          <button type="button" className="nav-btn login-link" onClick={onLogout}>
+            Log out
+          </button>
         </nav>
       </div>
     </header>
