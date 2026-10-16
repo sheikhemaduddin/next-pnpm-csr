@@ -1,4 +1,4 @@
-# next-pnpm · Cloudways deploy (custom Node + Socket.IO)
+# next-pnpm · Cloudways deploy (custom Node + JWT + Socket.IO)
 
 | Field | Value |
 |-------|-------|
@@ -11,72 +11,46 @@
 | Rendering Mode | **SSR** *(custom Node server)* |
 | Node | >=18.18.0 |
 
+## App login (JWT — no Supabase)
+
+PitchPulse uses **app JWT auth only**. The home SPA (and `/login`) show a login gate until signed in; **Log out** returns to that gate.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/auth/login` | `{ email, password }` → `{ token, user }` |
+| `GET /api/auth/me` | Current user via `X-Access-Token` |
+
+Demo user: `demo@pitchpulse.app` / `pitchpulse`
+
+Optional env: `JWT_SECRET` (or `APP_JWT_SECRET`) — defaults to a dev secret if unset.
+
+## HTTP Basic Auth + app JWT
+
+Cloudways Application Password Protection uses `Authorization` for Basic Auth.
+The app JWT is sent only as **`X-Access-Token`** on same-origin calls — never as `Authorization: Bearer`.
+
+Unauthenticated APIs return **403** (not 401) so the browser does not re-challenge Basic Auth.
+
 ## Critical: start via `server.js`
 
-Cloudways must run the **custom entry file**, not stock `next start`:
-
 - `package.json` → `"main": "server.js"`, `"start": "NODE_ENV=production node server.js"`
-- `package.json` → `"cloudways.entryFile": "server.js"`
 - `cloudways.json` → `"entryFile": "server.js"`
 
-`server.js` attaches Socket.IO to the same HTTP server as Next and handles:
-
-- `GET /healthz`
-- `GET /api/live/poll` (HTTP fallback when `/socket.io` is blocked)
-- `/socket.io/*` (polling + websocket upgrade)
+`server.js` handles `/healthz`, `/api/auth/*`, `/api/live/poll`, and `/socket.io/*`.
 
 ## Proxy `/socket.io` to Node
 
-Socket.IO XHR polling (`/socket.io/?EIO=4&transport=polling`) must reach the Node process.
-
-On Cloudways:
-
-1. **Application type / start**: persistent Node app with entry `server.js` (above).
-2. **Varnish**: disable for this app (or purge + exclude `/socket.io` and `/api/live`). Cached polling responses cause `xhr poll error`.
-3. **Nginx reverse proxy**: forward `/socket.io` (and WebSocket upgrade) to the app `PORT`. Do not rewrite the path away from `/socket.io`.
-4. Verify after deploy:
+1. Persistent Node app with entry `server.js`
+2. Disable Varnish for this app (or exclude `/socket.io` and `/api/*`)
+3. Forward `/socket.io` (and WebSocket upgrade) to the app `PORT`
 
 ```bash
 curl -sS https://YOUR_APP/healthz
-# → {"ok":true,"mode":"next-custom-ssr","entry":"server.js","socket":"socket.io",...}
-
-curl -sS "https://YOUR_APP/socket.io/?EIO=4&transport=polling"
-# → starts with `0{` (Engine.IO open packet), NOT HTML/404
-
-curl -sS "https://YOUR_APP/api/live/poll"
-# → {"ok":true,"mode":"http-poll","events":[...]}
+# → {"ok":true,"login":"app-jwt","entry":"server.js",...}
 ```
-
-If `/socket.io` returns HTML or 404, the Live Feed falls back to **HTTP poll** (`/api/live/poll`) automatically.
-
-## App login (not Supabase)
-
-PitchPulse login is **separate from Supabase**. The home SPA shows a login gate until the user signs in; **Log out** clears the session and returns to that gate.
-
-- `POST /api/auth/login` → `{ token, user }`
-- Client stores the JWT in `localStorage` and sends it as **`X-Access-Token`** (never `Authorization`)
-- Demo user: `demo@pitchpulse.app` / `pitchpulse`
-- Optional: set `JWT_SECRET` (or `APP_JWT_SECRET`) on the server
-
-Supabase remains optional and is only used for Leaders data (`SUPABASE_URL` / `SUPABASE_ANON_KEY`).
-
-## HTTP Basic Auth + app JWT (FleetIQ pattern)
-
-Cloudways Application Password Protection uses the `Authorization` header for Basic Auth.
-If the app also sends `Authorization: Bearer <jwt>` on same-origin requests, the edge sees only the Bearer token → **401** → the browser asks for HTTP auth again.
-
-**Rule:** never put the app JWT on `Authorization` for same-origin calls.
-
-| Call | Header |
-|------|--------|
-| Browser → Cloudways app (`/api/...`) | `X-Access-Token: <app jwt>` via `lib/auth/session.js` |
-| Browser → Supabase (`*.supabase.co`) | `Authorization: Bearer …` (required by Supabase; not same-origin) |
-| Cloudways edge Basic Auth | `Authorization: Basic …` (browser-managed) |
-
-Unauthenticated APIs return **403** (not 401) so the browser does not re-challenge Basic Auth.
 
 ## Notes
 
 - **Do not** set Output Directory to `.next` or `out` alone — `server.js` must be deployed.
 - The app listens on `process.env.PORT` (Cloudways sets this).
-- Env: `SUPABASE_URL` / `SUPABASE_ANON_KEY` (mapped to `NEXT_PUBLIC_*` in `next.config.js` at build time).
+- No Supabase (or other) database credentials are required.

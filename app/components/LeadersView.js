@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '../../lib/supabase/client';
-import { hasSupabaseConfig } from '../../lib/supabase/env';
+import { useMemo, useState } from 'react';
+import { LEADERS } from '../data/sportsData';
 
 const TABS = [
   { id: 'scorer', label: 'Top Scorers', unitHint: 'Goals' },
@@ -11,71 +10,18 @@ const TABS = [
 
 export default function LeadersView() {
   const [category, setCategory] = useState('scorer');
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      setRows([]);
-
-      if (!hasSupabaseConfig()) {
-        if (!cancelled) {
-          setError(
-            'Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY, then rebuild.'
-          );
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const supabase = createClient();
-        if (!supabase) {
-          throw new Error('Supabase is not configured');
-        }
-        // Talks to *.supabase.co (Authorization: Bearer is correct there).
-        // Same-origin APIs must use apiFetch / X-Access-Token instead.
-        const { data, error: queryError } = await supabase
-          .from('leaders')
-          .select('id, category, player_name, team, sport, value, unit, rank, season')
-          .eq('category', category)
-          .order('rank', { ascending: true });
-
-        if (cancelled) return;
-
-        if (queryError) {
-          setError(queryError.message);
-          setRows([]);
-        } else {
-          setRows(data || []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err?.message || 'Failed to load leaders from Supabase');
-          setRows([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [category]);
+  const rows = useMemo(
+    () => LEADERS.filter((r) => r.category === category).sort((a, b) => a.rank - b.rank),
+    [category]
+  );
 
   const activeTab = TABS.find((t) => t.id === category);
 
   return (
     <div className="view-enter">
       <h1 className="section-title">Leaders</h1>
-      <p className="section-sub">Live ranking from Supabase · {activeTab?.unitHint}</p>
+      <p className="section-sub">Local rankings · {activeTab?.unitHint}</p>
 
       <div className="tabs">
         {TABS.map((tab) => (
@@ -90,21 +36,11 @@ export default function LeadersView() {
         ))}
       </div>
 
-      {loading && <p className="leaders-status">Loading from Supabase…</p>}
-
-      {!loading && error && (
+      {rows.length === 0 ? (
         <div className="leaders-empty">
-          <p role="alert">{error}</p>
+          <p>No {category === 'scorer' ? 'scorers' : 'bowlers'} yet.</p>
         </div>
-      )}
-
-      {!loading && !error && rows.length === 0 && (
-        <div className="leaders-empty">
-          <p>No {category === 'scorer' ? 'scorers' : 'bowlers'} in Supabase yet.</p>
-        </div>
-      )}
-
-      {!loading && !error && rows.length > 0 && (
+      ) : (
         <>
           <div className="table-wrap">
             <table className="standings-table leaders-table">
@@ -128,7 +64,9 @@ export default function LeadersView() {
                         <span>{row.player_name}</span>
                       </div>
                     </td>
-                    <td className="stat-num" style={{ textAlign: 'left' }}>{row.team}</td>
+                    <td className="stat-num" style={{ textAlign: 'left' }}>
+                      {row.team}
+                    </td>
                     <td className="stat-num stat-pts">{row.value}</td>
                   </tr>
                 ))}
@@ -136,7 +74,7 @@ export default function LeadersView() {
             </table>
           </div>
           <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Season {rows[0].season} · Supabase <code>leaders</code> table
+            Season {rows[0].season}
           </p>
         </>
       )}

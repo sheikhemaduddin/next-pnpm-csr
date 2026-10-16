@@ -1,31 +1,27 @@
-# next-pnpm-csr
+# PitchPulse (next-pnpm)
 
-Next.js client-side SPA with a custom `server.js` entry — no SSR, static export, Cloudways-ready.
+Next.js SPA with a custom `server.js` entry — JWT login, Socket.IO / HTTP live poll, Cloudways-ready.
 
 ## Stack
 
 | | |
 |---|---|
-| Rendering | Client-only (`ssr: false`, `output: 'export'`) |
-| Dev | `server.js` runs Next in development mode |
-| Production | `server.js` serves the static `out/` bundle |
-| Health check | `GET /healthz` (handled outside Next) |
+| Entry | `server.js` (not `next start`) |
+| Auth | App JWT via `X-Access-Token` (Cloudways Basic Auth safe) |
+| Live feed | Socket.IO + HTTP poll fallback |
+| Data | Local mock data (no Supabase) |
 
 ## Local development
 
 ```bash
 pnpm install
 pnpm dev          # http://localhost:3000
-pnpm build        # exports static site to out/
-pnpm start        # production — serves out/
+pnpm build
+pnpm start        # production — node server.js
 ```
+
+Demo login: `demo@pitchpulse.app` / `pitchpulse`
 
 ## Cloudways
 
-See [CLOUDWAYS.md](./CLOUDWAYS.md) for the full deploy configuration.
-
-Before pushing, regenerate the lockfile if dependencies changed:
-
-```bash
-./generate-lockfile.sh
-```
+See [CLOUDWAYS.md](./CLOUDWAYS.md).
