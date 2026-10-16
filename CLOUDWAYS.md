@@ -49,6 +49,22 @@ curl -sS "https://YOUR_APP/api/live/poll"
 
 If `/socket.io` returns HTML or 404, the Live Feed falls back to **HTTP poll** (`/api/live/poll`) automatically.
 
+## HTTP Basic Auth + app JWT (FleetIQ pattern)
+
+Cloudways Application Password Protection uses the `Authorization` header for Basic Auth.
+If the app also sends `Authorization: Bearer <jwt>` on same-origin requests, the edge sees only the Bearer token → **401** → the browser asks for HTTP auth again.
+
+**Rule:** never put the app JWT on `Authorization` for same-origin calls.
+
+| Call | Header |
+|------|--------|
+| Browser → Cloudways app (`/api/...`) | `X-Access-Token: <supabase access_token>` via `lib/auth/apiFetch.js` |
+| Browser → Supabase (`*.supabase.co`) | `Authorization: Bearer …` (required by Supabase; not same-origin) |
+| Cloudways edge Basic Auth | `Authorization: Basic …` (browser-managed) |
+
+Server routes resolve the user with `getRequestAuth()` (cookies first, then `X-Access-Token`).
+Unauthenticated APIs return **403** (not 401) so the browser does not re-challenge Basic Auth.
+
 ## Notes
 
 - **Do not** set Output Directory to `.next` or `out` alone — `server.js` must be deployed.

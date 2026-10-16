@@ -3,8 +3,14 @@ import { createClient } from '../../lib/supabase/server';
 import { signout } from '../login/actions';
 import UploadForm from './UploadForm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ItemsPage() {
   const supabase = await createClient();
+  if (!supabase) {
+    redirect('/login?error=' + encodeURIComponent('Supabase is not configured'));
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

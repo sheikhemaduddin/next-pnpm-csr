@@ -35,6 +35,11 @@ export default function LeadersView() {
 
       try {
         const supabase = createClient();
+        if (!supabase) {
+          throw new Error('Supabase is not configured');
+        }
+        // Talks to *.supabase.co (Authorization: Bearer is correct there).
+        // Same-origin APIs must use apiFetch / X-Access-Token instead.
         const { data, error: queryError } = await supabase
           .from('leaders')
           .select('id, category, player_name, team, sport, value, unit, rank, season')

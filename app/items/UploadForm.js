@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '../../lib/auth/apiFetch';
 
 export default function UploadForm() {
   const [status, setStatus] = useState(null);
@@ -10,9 +11,9 @@ export default function UploadForm() {
     setStatus('uploading');
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch('/api/upload', { method: 'POST', body: formData });
+    // apiFetch sends JWT as X-Access-Token — never Authorization (Cloudways Basic Auth).
+    const response = await apiFetch('/api/upload', { method: 'POST', body: formData });
     const result = await response.json();
-
     setStatus(response.ok ? `Uploaded: ${result.path}` : `Error: ${result.error}`);
     if (response.ok) event.currentTarget.reset();
   }

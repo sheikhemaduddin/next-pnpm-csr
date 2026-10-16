@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { apiFetch } from '../../lib/auth/apiFetch';
 import { getSocket, resetSocket } from '../../lib/socket';
 
 const MAX_EVENTS = 20;
@@ -42,7 +43,7 @@ export default function LiveView() {
       if (cancelled || mode !== 'http') return;
       try {
         const qs = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}` : '';
-        const res = await fetch(`/api/live/poll${qs}`, { cache: 'no-store' });
+          const res = await apiFetch(`/api/live/poll${qs}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled && mode === 'http') {

@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabase/server';
+import { getRequestAuth } from '../../../lib/auth/getRequestAuth';
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'uploads';
 
 export async function POST(request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getRequestAuth(request);
 
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // 403 (not 401): behind Cloudways Basic Auth, a 401 can re-prompt the browser
+    // for HTTP credentials even when the edge auth is already satisfied.
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 403 });
   }
 
   const formData = await request.formData();

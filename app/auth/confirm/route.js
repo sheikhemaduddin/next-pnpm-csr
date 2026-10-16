@@ -9,6 +9,11 @@ export async function GET(request) {
 
   if (token_hash && type) {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent('Supabase is not configured')}`
+      );
+    }
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
 
     if (!error) {
