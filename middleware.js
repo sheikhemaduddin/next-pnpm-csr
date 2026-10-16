@@ -6,6 +6,7 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip Socket.IO polling/upgrade requests — handled by server.js, not Next.
+    '/((?!_next/static|_next/image|favicon.ico|socket\\.io(?:/.*)?$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

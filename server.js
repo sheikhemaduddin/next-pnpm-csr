@@ -44,7 +44,13 @@ function sendHealthz(res) {
 }
 
 app.prepare().then(() => {
+  // Socket.IO registers its own 'request'/'upgrade' listeners on this server.
+  // Do NOT pass /socket.io through Next — that breaks the polling handshake.
   const httpServer = createServer((req, res) => {
+    if (req.url?.startsWith('/socket.io')) {
+      return;
+    }
+
     const parsedUrl = parseRequestUrl(req.url);
 
     if (parsedUrl.pathname === '/healthz') {
@@ -59,14 +65,27 @@ app.prepare().then(() => {
   const io = new Server(httpServer, {
     path: '/socket.io',
     transports: ['polling', 'websocket'],
+    allowUpgrades: true,
     cors: { origin: true, credentials: true },
+    pingInterval: 25000,
+    pingTimeout: 20000,
   });
 
   io.on('connection', (socket) => {
     const transport = socket.conn.transport.name;
+    console.log(`[socket.io] client connected transport=${transport} id=${socket.id}`);
+
     socket.emit('live:hello', {
       message: 'Connected to PitchPulse live feed',
       transport,
+      at: new Date().toISOString(),
+    });
+
+    // Send one event immediately so the UI is not stuck on "waiting".
+    socket.emit('live:event', {
+      type: 'goal',
+      text: 'Live feed online — waiting for match events…',
+      id: `hello-${socket.id}`,
       at: new Date().toISOString(),
     });
 
@@ -81,6 +100,10 @@ app.prepare().then(() => {
       const response = { pong: true, echo: payload || null, at: new Date().toISOString() };
       if (typeof ack === 'function') ack(response);
       else socket.emit('live:pong', response);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log(`[socket.io] client disconnected id=${socket.id} reason=${reason}`);
     });
   });
 
