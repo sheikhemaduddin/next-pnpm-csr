@@ -13,6 +13,8 @@ export default function Footer({ onNavigate }) {
           <button onClick={() => onNavigate('news')}>News</button>
           <button onClick={() => onNavigate('standings')}>Standings</button>
           <button onClick={() => onNavigate('leaders')}>Leaders</button>
+          <button onClick={() => onNavigate('live')}>Live Feed</button>
+          <a href="/login">Log in</a>
         </div>
       </div>
     </footer>
