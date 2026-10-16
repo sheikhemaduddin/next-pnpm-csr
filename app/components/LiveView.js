@@ -17,7 +17,7 @@ export default function LiveView() {
   useEffect(() => {
     let cancelled = false;
     let pollTimer;
-    let usingHttpPoll = false;
+    let mode = 'http'; // http | socket
 
     const pushEvents = (incoming) => {
       if (!incoming?.length) return;
@@ -33,89 +33,100 @@ export default function LiveView() {
       });
     };
 
-    const startHttpPoll = (reason) => {
-      if (usingHttpPoll || cancelled) return;
-      usingHttpPoll = true;
-      resetSocket();
-      setStatus('connected');
-      setTransport('http-poll');
-      setHello({ message: 'Using HTTP poll (Cloudways-safe fallback)' });
-      setError(reason ? `Socket.IO unavailable (${reason}) — switched to HTTP poll` : null);
-
-      const tick = async () => {
-        if (cancelled) return;
-        try {
-          const qs = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}` : '';
-          const res = await fetch(`/api/live/poll${qs}`, { cache: 'no-store' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (!cancelled) {
-            setStatus('connected');
-            setTransport('http-poll');
-            pushEvents(data.events || []);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setStatus('error');
-            setError(err?.message || 'HTTP poll failed');
-          }
-        } finally {
-          if (!cancelled) pollTimer = setTimeout(tick, 1000);
-        }
-      };
-
-      tick();
+    const stopHttpPoll = () => {
+      clearTimeout(pollTimer);
+      pollTimer = undefined;
     };
 
+    const tickHttp = async () => {
+      if (cancelled || mode !== 'http') return;
+      try {
+        const qs = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}` : '';
+        const res = await fetch(`/api/live/poll${qs}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled && mode === 'http') {
+          setStatus('connected');
+          setTransport('http-poll');
+          setHello({ message: 'Live via HTTP poll' });
+          setError(null);
+          pushEvents(data.events || []);
+        }
+      } catch (err) {
+        if (!cancelled && mode === 'http') {
+          setStatus('error');
+          setError(err?.message || 'Live poll failed');
+        }
+      } finally {
+        if (!cancelled && mode === 'http') {
+          pollTimer = setTimeout(tickHttp, 1000);
+        }
+      }
+    };
+
+    // Primary path: HTTP long-poll (works when Cloudways blocks /socket.io).
+    setTransport('http-poll');
+    setHello({ message: 'Connecting via HTTP poll…' });
+    tickHttp();
+
+    // Optional upgrade: if Socket.IO connects, prefer it and stop HTTP poll.
     resetSocket();
     const socket = getSocket();
     if (!socket) {
-      startHttpPoll('no browser socket');
-      return undefined;
+      return () => {
+        cancelled = true;
+        stopHttpPoll();
+      };
     }
 
-    const failTimer = setTimeout(() => {
-      if (!socket.connected) startHttpPoll('xhr poll timeout');
-    }, 4000);
-
     const onConnect = () => {
-      clearTimeout(failTimer);
+      if (cancelled) return;
+      mode = 'socket';
+      stopHttpPoll();
       setStatus('connected');
       setError(null);
       setTransport(socket.io.engine?.transport?.name || 'polling');
+      setHello({ message: 'Connected to PitchPulse live feed' });
     };
-    const onDisconnect = (reason) => {
-      if (!usingHttpPoll) startHttpPoll(reason || 'disconnect');
-    };
-    const onConnectError = (err) => {
-      startHttpPoll(err?.message || 'xhr poll error');
+    const onDisconnect = () => {
+      if (cancelled || mode !== 'socket') return;
+      mode = 'http';
+      setTransport('http-poll');
+      setHello({ message: 'Live via HTTP poll' });
+      tickHttp();
     };
     const onHello = (payload) => {
-      setHello(payload);
-      setTransport(payload.transport || 'polling');
+      if (mode === 'socket') {
+        setHello(payload);
+        setTransport(payload.transport || 'polling');
+      }
     };
-    const onTransport = (payload) => setTransport(payload.transport || '—');
-    const onEvent = (payload) => pushEvents([payload]);
+    const onTransport = (payload) => {
+      if (mode === 'socket') setTransport(payload.transport || '—');
+    };
+    const onEvent = (payload) => {
+      if (mode === 'socket') pushEvents([payload]);
+    };
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
-    socket.on('connect_error', onConnectError);
     socket.on('live:hello', onHello);
     socket.on('live:transport', onTransport);
     socket.on('live:event', onEvent);
+    // Ignore connect_error — HTTP poll already covers the feed.
+    socket.on('connect_error', () => {});
 
     if (socket.connected) onConnect();
 
     return () => {
       cancelled = true;
-      clearTimeout(failTimer);
-      clearTimeout(pollTimer);
+      stopHttpPoll();
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('connect_error', onConnectError);
       socket.off('live:hello', onHello);
       socket.off('live:transport', onTransport);
       socket.off('live:event', onEvent);
+      socket.off('connect_error');
       resetSocket();
     };
   }, []);
@@ -123,14 +134,16 @@ export default function LiveView() {
   return (
     <div className="view-enter">
       <h1 className="section-title">Live Feed</h1>
-      <p className="section-sub">Realtime updates · Socket.IO polling with HTTP poll fallback</p>
+      <p className="section-sub">Realtime updates · HTTP poll (Socket.IO when available)</p>
 
       <div className="live-status-row">
         <span className={`live-status-badge ${status}`}>
           <span className="live-dot" />
           {status}
         </span>
-        <span className="live-meta">Transport: <strong>{transport}</strong></span>
+        <span className="live-meta">
+          Transport: <strong>{transport}</strong>
+        </span>
         {hello && <span className="live-meta">{hello.message}</span>}
       </div>
 

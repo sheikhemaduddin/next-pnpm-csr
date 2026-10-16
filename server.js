@@ -44,6 +44,7 @@ function sendHealthz(res) {
 /** Long-poll live events in server.js so Cloudways always hits the Node process. */
 function handleLivePoll(req, res, parsedUrl) {
   const since = parsedUrl.query.since || '';
+  liveBus.ensureTicker();
   const existing = liveBus.recent(since);
   if (existing.length > 0) {
     sendJson(res, 200, {
@@ -63,6 +64,10 @@ function handleLivePoll(req, res, parsedUrl) {
     settled = true;
     clearTimeout(timer);
     off();
+    if (!events.length && !since) {
+      liveBus.pushRandom();
+      events = liveBus.recent(since);
+    }
     sendJson(res, 200, {
       ok: true,
       mode: 'http-poll',
@@ -71,7 +76,7 @@ function handleLivePoll(req, res, parsedUrl) {
     });
   };
 
-  const timer = setTimeout(() => finish(liveBus.recent(since)), 4000);
+  const timer = setTimeout(() => finish(liveBus.recent(since)), 2500);
   off = liveBus.onEvent(() => finish(liveBus.recent(since)));
 
   req.on('close', () => {
@@ -156,14 +161,7 @@ app.prepare().then(() => {
   });
 
   // Seed + broadcast mock events through the shared bus (Socket.IO + HTTP poll).
-  liveBus.push({
-    type: 'goal',
-    text: 'PitchPulse live bus started',
-  });
-
-  setInterval(() => {
-    liveBus.pushRandom();
-  }, 5000);
+  liveBus.ensureTicker();
 
   httpServer.listen(port, () => {
     console.log(`[next-custom-ssr] ready on ${port} (${dev ? 'dev' : 'production'})`);
