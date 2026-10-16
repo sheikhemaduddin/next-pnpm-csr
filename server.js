@@ -3,21 +3,13 @@
 const { createServer } = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
+const liveBus = require('./lib/liveBus');
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = process.env.PORT || 3000;
 
 const app = next({ dev });
 const handle = app.getRequestHandler();
-
-const LIVE_EVENTS = [
-  { type: 'goal', text: 'GOAL! Arsenal 2-1 Man City — Saka 67\'' },
-  { type: 'card', text: 'Yellow card — Rodri (Man City)' },
-  { type: 'sub', text: 'Substitution — Liverpool: Diaz on for Gakpo' },
-  { type: 'goal', text: 'GOAL! Chelsea 1-0 Tottenham — Palmer 23\'' },
-  { type: 'var', text: 'VAR check — possible handball in the box' },
-  { type: 'save', text: 'Great save by Raya from Haaland' },
-];
 
 function parseRequestUrl(reqUrl) {
   const url = new URL(reqUrl, 'http://localhost');
@@ -30,17 +22,64 @@ function parseRequestUrl(reqUrl) {
   };
 }
 
-function sendHealthz(res) {
+function sendJson(res, statusCode, body) {
+  res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json');
-  res.end(
-    JSON.stringify({
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(JSON.stringify(body));
+}
+
+function sendHealthz(res) {
+  sendJson(res, 200, {
+    ok: true,
+    mode: 'next-custom-ssr',
+    entry: 'server.js',
+    socket: 'socket.io',
+    httpPoll: '/api/live/poll',
+    transports: ['polling', 'websocket'],
+    runtime: `node ${process.version}`,
+  });
+}
+
+/** Long-poll live events in server.js so Cloudways always hits the Node process. */
+function handleLivePoll(req, res, parsedUrl) {
+  const since = parsedUrl.query.since || '';
+  const existing = liveBus.recent(since);
+  if (existing.length > 0) {
+    sendJson(res, 200, {
       ok: true,
-      mode: 'next-custom-ssr',
-      socket: 'socket.io',
-      transports: ['polling', 'websocket'],
-      runtime: `node ${process.version}`,
-    })
-  );
+      mode: 'http-poll',
+      events: existing,
+      serverTime: new Date().toISOString(),
+    });
+    return;
+  }
+
+  let settled = false;
+  let off = () => {};
+
+  const finish = (events) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    off();
+    sendJson(res, 200, {
+      ok: true,
+      mode: 'http-poll',
+      events,
+      serverTime: new Date().toISOString(),
+    });
+  };
+
+  const timer = setTimeout(() => finish(liveBus.recent(since)), 4000);
+  off = liveBus.onEvent(() => finish(liveBus.recent(since)));
+
+  req.on('close', () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    off();
+  });
 }
 
 app.prepare().then(() => {
@@ -58,17 +97,27 @@ app.prepare().then(() => {
       return;
     }
 
+    // Served here (not only via Next) so the same liveBus instance is used.
+    if (parsedUrl.pathname === '/api/live/poll') {
+      handleLivePoll(req, res, parsedUrl);
+      return;
+    }
+
     handle(req, res, parsedUrl);
   });
-
-  // Polling first (long-polling), then optional WebSocket upgrade.
   const io = new Server(httpServer, {
     path: '/socket.io',
     transports: ['polling', 'websocket'],
     allowUpgrades: true,
-    cors: { origin: true, credentials: true },
+    // Credentials off — Cloudways proxies often fail CORS preflight with cookies.
+    cors: { origin: true, credentials: false },
     pingInterval: 25000,
     pingTimeout: 20000,
+  });
+
+  // Fan bus events out to all Socket.IO clients.
+  liveBus.onEvent((event) => {
+    io.emit('live:event', event);
   });
 
   io.on('connection', (socket) => {
@@ -81,7 +130,6 @@ app.prepare().then(() => {
       at: new Date().toISOString(),
     });
 
-    // Send one event immediately so the UI is not stuck on "waiting".
     socket.emit('live:event', {
       type: 'goal',
       text: 'Live feed online — waiting for match events…',
@@ -107,18 +155,19 @@ app.prepare().then(() => {
     });
   });
 
-  // Broadcast mock live match events every 5s over the Socket.IO channel.
+  // Seed + broadcast mock events through the shared bus (Socket.IO + HTTP poll).
+  liveBus.push({
+    type: 'goal',
+    text: 'PitchPulse live bus started',
+  });
+
   setInterval(() => {
-    const event = LIVE_EVENTS[Math.floor(Math.random() * LIVE_EVENTS.length)];
-    io.emit('live:event', {
-      ...event,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      at: new Date().toISOString(),
-    });
+    liveBus.pushRandom();
   }, 5000);
 
   httpServer.listen(port, () => {
     console.log(`[next-custom-ssr] ready on ${port} (${dev ? 'dev' : 'production'})`);
     console.log(`[socket.io] path=/socket.io transports=polling,websocket`);
+    console.log(`[live] http poll fallback GET /api/live/poll`);
   });
 });

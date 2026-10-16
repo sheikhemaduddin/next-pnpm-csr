@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getSocket, resetSocket } from '../../lib/socket';
 
 const MAX_EVENTS = 20;
@@ -11,34 +11,91 @@ export default function LiveView() {
   const [events, setEvents] = useState([]);
   const [hello, setHello] = useState(null);
   const [error, setError] = useState(null);
+  const sinceRef = useRef('');
+  const seenRef = useRef(new Set());
 
   useEffect(() => {
-    // Fresh connection each time this view mounts (avoids stuck singleton).
+    let cancelled = false;
+    let pollTimer;
+    let usingHttpPoll = false;
+
+    const pushEvents = (incoming) => {
+      if (!incoming?.length) return;
+      setEvents((prev) => {
+        const next = [...prev];
+        for (const ev of incoming) {
+          if (seenRef.current.has(ev.id)) continue;
+          seenRef.current.add(ev.id);
+          next.unshift(ev);
+          if (!sinceRef.current || ev.at > sinceRef.current) sinceRef.current = ev.at;
+        }
+        return next.slice(0, MAX_EVENTS);
+      });
+    };
+
+    const startHttpPoll = (reason) => {
+      if (usingHttpPoll || cancelled) return;
+      usingHttpPoll = true;
+      resetSocket();
+      setStatus('connected');
+      setTransport('http-poll');
+      setHello({ message: 'Using HTTP poll (Cloudways-safe fallback)' });
+      setError(reason ? `Socket.IO unavailable (${reason}) — switched to HTTP poll` : null);
+
+      const tick = async () => {
+        if (cancelled) return;
+        try {
+          const qs = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}` : '';
+          const res = await fetch(`/api/live/poll${qs}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!cancelled) {
+            setStatus('connected');
+            setTransport('http-poll');
+            pushEvents(data.events || []);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setStatus('error');
+            setError(err?.message || 'HTTP poll failed');
+          }
+        } finally {
+          if (!cancelled) pollTimer = setTimeout(tick, 1000);
+        }
+      };
+
+      tick();
+    };
+
     resetSocket();
     const socket = getSocket();
-    if (!socket) return undefined;
+    if (!socket) {
+      startHttpPoll('no browser socket');
+      return undefined;
+    }
+
+    const failTimer = setTimeout(() => {
+      if (!socket.connected) startHttpPoll('xhr poll timeout');
+    }, 4000);
 
     const onConnect = () => {
+      clearTimeout(failTimer);
       setStatus('connected');
       setError(null);
       setTransport(socket.io.engine?.transport?.name || 'polling');
     };
     const onDisconnect = (reason) => {
-      setStatus('disconnected');
-      setError(`Disconnected: ${reason}`);
+      if (!usingHttpPoll) startHttpPoll(reason || 'disconnect');
     };
     const onConnectError = (err) => {
-      setStatus('error');
-      setError(err?.message || 'Failed to connect to Socket.IO');
+      startHttpPoll(err?.message || 'xhr poll error');
     };
     const onHello = (payload) => {
       setHello(payload);
       setTransport(payload.transport || 'polling');
     };
     const onTransport = (payload) => setTransport(payload.transport || '—');
-    const onEvent = (payload) => {
-      setEvents((prev) => [payload, ...prev].slice(0, MAX_EVENTS));
-    };
+    const onEvent = (payload) => pushEvents([payload]);
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
@@ -49,13 +106,10 @@ export default function LiveView() {
 
     if (socket.connected) onConnect();
 
-    const pingId = setInterval(() => {
-      if (!socket.connected) return;
-      socket.emit('live:ping', { t: Date.now() });
-    }, 15000);
-
     return () => {
-      clearInterval(pingId);
+      cancelled = true;
+      clearTimeout(failTimer);
+      clearTimeout(pollTimer);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
@@ -69,7 +123,7 @@ export default function LiveView() {
   return (
     <div className="view-enter">
       <h1 className="section-title">Live Feed</h1>
-      <p className="section-sub">Socket.IO · polling-first realtime updates</p>
+      <p className="section-sub">Realtime updates · Socket.IO polling with HTTP poll fallback</p>
 
       <div className="live-status-row">
         <span className={`live-status-badge ${status}`}>
@@ -83,16 +137,15 @@ export default function LiveView() {
       {error && (
         <div className="leaders-empty" style={{ marginBottom: '1rem' }}>
           <p role="alert">{error}</p>
-          <p className="section-sub" style={{ margin: 0 }}>
-            Ensure the app runs via <code>server.js</code> (not <code>next start</code>) and that
-            <code> /socket.io</code> is proxied to Node on Cloudways.
-          </p>
         </div>
       )}
 
       <div className="live-feed">
-        {!error && events.length === 0 && (
+        {events.length === 0 && status === 'connected' && (
           <p className="leaders-status">Waiting for live match events…</p>
+        )}
+        {events.length === 0 && status === 'connecting' && (
+          <p className="leaders-status">Connecting…</p>
         )}
         <ul className="live-event-list">
           {events.map((ev) => (
