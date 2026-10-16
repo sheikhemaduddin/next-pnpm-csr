@@ -1,48 +1,16 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { createClient } from '../../lib/supabase/server';
 
-export async function login(formData) {
-  const supabase = await createClient();
-  if (!supabase) {
-    redirect(`/login?error=${encodeURIComponent('Supabase is not configured')}`);
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get('email'),
-    password: formData.get('password'),
-  });
-
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
-  }
-
+/** Legacy Supabase server actions — unused by the SPA login gate. */
+export async function login() {
   redirect('/');
 }
 
-export async function signup(formData) {
-  const supabase = await createClient();
-  if (!supabase) {
-    redirect(`/login?error=${encodeURIComponent('Supabase is not configured')}`);
-  }
-
-  const { error } = await supabase.auth.signUp({
-    email: formData.get('email'),
-    password: formData.get('password'),
-  });
-
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect('/login?message=Check your email to confirm your account');
+export async function signup() {
+  redirect('/');
 }
 
 export async function signout() {
-  const supabase = await createClient();
-  if (supabase) {
-    await supabase.auth.signOut();
-  }
-  redirect('/login');
+  redirect('/');
 }

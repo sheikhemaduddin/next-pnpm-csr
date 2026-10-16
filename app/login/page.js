@@ -1,6 +1,17 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-/** App login lives on the home SPA gate — not Supabase. */
+import { useRouter } from 'next/navigation';
+import LoginGate from '../components/LoginGate';
+
+/** Standalone login — app JWT auth, not Supabase. */
 export default function LoginPage() {
-  redirect('/');
+  const router = useRouter();
+
+  return (
+    <LoginGate
+      onLoggedIn={() => {
+        router.replace('/');
+      }}
+    />
+  );
 }

@@ -98,6 +98,8 @@ function sendHealthz(res) {
     ok: true,
     mode: 'next-custom-ssr',
     entry: 'server.js',
+    login: 'app-jwt',
+    authLogin: '/api/auth/login',
     socket: 'socket.io',
     httpPoll: '/api/live/poll',
     transports: ['polling', 'websocket'],
